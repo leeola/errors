@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"runtime"
@@ -30,6 +31,7 @@ func Cause(err error) error {
 func Errorf(f string, s ...interface{}) error {
 	msg := fmt.Sprintf(f, s...)
 	return &errWrap{
+		err:      errors.New(msg),
 		Msg:      msg,
 		SumStack: []string{callerLine() + ": " + msg},
 	}
@@ -91,6 +93,20 @@ func wrap(err error, caller string, s string) error {
 		}
 	}
 
+	// if the errWrap is actually the original error, do not modify it. Make
+	// a new err as the wrap, and embed the old one.
+	//
+	// We do this because currently we're not actually embedding all errors, but rather
+	// only the original errors. Repeated Wrap() calls just modify the state of the
+	// error msg/stack, but we don't want to modify the original error.
+	if sErr.IsCause() {
+		sErr = &errWrap{
+			err:      sErr,
+			Msg:      sErr.Error(),
+			SumStack: sErr.SumStack,
+		}
+	}
+
 	// the given error is a wrapped error, *do not* include the
 	// err.Error(), as that will consist of the cascade message.
 	stackLine := caller + ": " + s
@@ -137,8 +153,12 @@ func (e *errWrap) Errors() []string {
 	return e.SumStack[:]
 }
 
+func (e *errWrap) IsCause() bool {
+	return e == e.Cause()
+}
+
 func (e *errWrap) Cause() error {
-	if e.err == nil {
+	if e.err != nil {
 		return e.err
 	}
 	return e
