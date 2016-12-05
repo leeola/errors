@@ -8,13 +8,6 @@ import (
 	"strings"
 )
 
-func New(s string) error {
-	return &errWrap{
-		Msg:      s,
-		SumStack: []string{callerLine() + ": " + s},
-	}
-}
-
 func Cause(err error) error {
 	cErr, ok := err.(causer)
 	if !ok {
@@ -34,6 +27,36 @@ func Errorf(f string, s ...interface{}) error {
 		err:      errors.New(msg),
 		Msg:      msg,
 		SumStack: []string{callerLine() + ": " + msg},
+	}
+}
+
+// Equals checks if a and b are the same, have the same cause, or variations within.
+func Equals(a error, b error) bool {
+	if a == b {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	aCause := Cause(a)
+	if aCause == b {
+		return true
+	}
+
+	bCause := Cause(b)
+	if bCause == a {
+		return true
+	}
+
+	return aCause == bCause
+}
+
+func New(s string) error {
+	return &errWrap{
+		Msg:      s,
+		SumStack: []string{callerLine() + ": " + s},
 	}
 }
 
