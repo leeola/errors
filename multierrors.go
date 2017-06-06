@@ -7,6 +7,10 @@ const (
 )
 
 func Join(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
 	return multiErr{
 		Errs: errs,
 		Sep:  defaultErrorsSep,
@@ -14,6 +18,10 @@ func Join(errs []error) error {
 }
 
 func JoinSep(errs []error, sep string) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
 	return multiErr{
 		Errs: errs,
 		Sep:  sep,
